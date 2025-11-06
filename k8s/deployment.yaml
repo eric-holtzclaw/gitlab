@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab
+  namespace: gitlab
+  labels:
+    app: gitlab
+spec:
+  replicas: 1  # GitLab CE single instance (not HA)
+  strategy:
+    type: Recreate  # Use Recreate for stateful application with persistent storage
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1000  # GitLab runs as git user (UID 1000)
+      initContainers:
+      - name: volume-permissions
+        image: busybox:latest
+        command: ['sh', '-c', 'echo "Starting permission fix..."; chown -R 997:997 /var/opt/gitlab/redis 2>&1 || echo "Redis chown failed"; chmod -R 755 /var/opt/gitlab/redis 2>&1 || true; chown -R 996:996 /var/opt/gitlab/postgresql 2>&1 || echo "PostgreSQL chown failed"; if [ -d /var/opt/gitlab/postgresql/data ]; then echo "Fixing PostgreSQL data directory (gitlab-psql:996:996)..."; chown -R 996:996 /var/opt/gitlab/postgresql/data 2>&1; chmod -R 700 /var/opt/gitlab/postgresql/data 2>&1; find /var/opt/gitlab/postgresql/data -type f -print0 | xargs -0 chmod 600 2>&1 || echo "File chmod failed"; ls -la /var/opt/gitlab/postgresql/data/PG_VERSION 2>&1 || echo "PG_VERSION not found"; fi; chown -R 998:998 /var/opt/gitlab 2>&1 || true; chown -R 996:996 /var/opt/gitlab/postgresql 2>&1 || true; chown -R 997:997 /var/opt/gitlab/redis 2>&1 || true; echo "Permissions fix complete"']
+        volumeMounts:
+        - name: gitlab-data
+          mountPath: /var/opt/gitlab
+        securityContext:
+          runAsUser: 0  # Run as root to fix permissions
+      containers:
+      - name: gitlab
+        image: gitlab/gitlab-ce:latest  # Official GitLab CE image
+        imagePullPolicy: Always  # Pull latest on updates
+        
+        # GitLab Docker image runs as root by default and handles permissions internally
+        # Do NOT set runAsUser - GitLab needs root to manage its services
+        
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 2222
+          name: ssh
+          protocol: TCP
+        
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: gitlab-config
+        - secretRef:
+            name: gitlab-secrets
+        
+        # Additional environment variables
+        env:
+        - name: GITLAB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-secrets
+              key: GITLAB_ROOT_PASSWORD
+        - name: GITLAB_ROOT_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-secrets
+              key: GITLAB_ROOT_EMAIL
+        
+        # Persistent storage for GitLab data
+        # GitLab omnibus uses /var/opt/gitlab as main directory
+        # /var/log/gitlab and /etc/gitlab are subdirectories
+        volumeMounts:
+        - name: gitlab-data
+          mountPath: /var/opt/gitlab
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /users/sign_in
+            port: 80
+          initialDelaySeconds: 300  # GitLab takes time to start (5 minutes)
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+        
+        readinessProbe:
+          httpGet:
+            path: /users/sign_in
+            port: 80
+          initialDelaySeconds: 180  # 3 minutes initial delay
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+        
+        # Resource limits (GitLab is resource-intensive)
+        # Based on server hardware analysis: 24 cores, 131GB RAM
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+      
+      volumes:
+      - name: gitlab-data
+        persistentVolumeClaim:
+          claimName: gitlab-pvc
+

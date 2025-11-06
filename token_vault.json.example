@@ -1,0 +1,10 @@
+{
+  "gitlab": {
+    "root_password": "ChangeMe123!@#SecurePassword",
+    "root_email": "admin@gitlab.local",
+    "notes": "Change these values before deployment!"
+  }
+}
+
+
+

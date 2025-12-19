@@ -1,0 +1,16 @@
+# Secrets - DO NOT COMMIT (CFORD: Single source of truth, not in git)
+token_vault.json
+k8s/secret.yaml
+**/token_vault.json
+**/secret.yaml
+
+# GitLab data (if copied locally)
+*.log
+*.tmp
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+

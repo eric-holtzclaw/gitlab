@@ -1,0 +1,93 @@
+# GitLab CI/CD Pipeline Example
+# Copy this to your repository root as .gitlab-ci.yml
+# Repository: https://github.com/eric-holtzclaw/core
+#
+# MCP Automation: This pipeline is structured for MCP automation
+# - Clear stage definitions enable easy MCP parsing
+# - Variable placeholders can be updated via MCP
+# - Deployment steps are modular for MCP-triggered updates
+
+stages:
+  - test      # Run tests
+  - build     # Build Docker image
+  - deploy    # Deploy to Kubernetes
+
+variables:
+  K8S_SERVER: "eric@10.0.0.10"
+  K8S_NAMESPACE: "default"
+  DOCKERHUB_USER: ""  # Set in GitLab CI/CD variables
+  # MCP Note: These variables can be updated via MCP API
+  # GitLab Registry: 10.0.0.16:5000 (use for container images)
+
+# Test stage - Run any tests before building
+test:
+  stage: test
+  image: alpine:latest
+  script:
+    - echo "Running tests..."
+    - echo "Add your test commands here"
+    # Example: npm test, pytest, etc.
+  only:
+    - merge_requests
+    - main
+
+# Build stage - Build Docker image
+# MCP Automation: MCP can update image tags, registry URLs, and build steps
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD
+    # Alternative: Use GitLab Container Registry (10.0.0.16:5000)
+    # - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DOCKERHUB_USER/$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA .
+    - docker push $DOCKERHUB_USER/$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA
+    # MCP Note: Image tag uses commit SHA for traceability
+    # MCP can update this to use semantic versioning or custom tags
+  only:
+    - main
+    - tags
+
+# Deploy stage - Deploy to Kubernetes using your existing k8s-deploy.sh script
+# MCP Automation: MCP can trigger this stage, monitor deployment, and rollback if needed
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client kubectl bash git
+    - mkdir -p ~/.ssh
+    - echo "$K8S_SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $K8S_SERVER >> ~/.ssh/known_hosts
+    # Setup kubectl
+    - echo "$K8S_CONFIG" | base64 -d > ~/.kube/config
+    - mkdir -p ~/.kube
+  script:
+    - echo "Deploying to Kubernetes..."
+    - kubectl get nodes
+    # Clone core repository to get k8s-deploy.sh script
+    - |
+      git clone https://github.com/eric-holtzclaw/core.git /tmp/core
+      cd /tmp/core
+      chmod +x k8s-devops/scripts/k8s-deploy.sh
+      
+      # Use your existing deployment script
+      # MCP Note: This script handles K8s deployment - MCP can monitor its execution
+      ./k8s-devops/scripts/k8s-deploy.sh pipeline $CI_PROJECT_NAME dockerhub $K8S_NAMESPACE
+    # MCP Automation: After deployment, MCP can verify deployment status
+    - echo "Verifying deployment..."
+    - kubectl get deployments -n $K8S_NAMESPACE
+    - kubectl get pods -n $K8S_NAMESPACE
+  only:
+    - main
+  environment:
+    name: production
+    url: https://your-app.example.com
+  # MCP Note: Set 'when: manual' to require MCP approval, or 'when: on_success' for auto-deploy
+
+
+

@@ -268,19 +268,48 @@ deploy:
 
 ---
 
+## Update: Additional Finding - Pipeline Validation Error
+
+**Date:** December 20, 2024
+
+We've discovered a **more severe manifestation** of this bug in GitLab 18.6.2:
+
+### Critical Finding
+
+**Problem:** When combining `rules:`, `needs:`, and `when: manual` in the same job, GitLab 18.6.2's pipeline validation fails with a generic "Undefined error" (error codes: `01KCZ11ZTSST6T2HERBTR66K0G`, `01KCZ19ZSJVX6RHQ1V71Y6AG3Z`, etc.), **preventing the pipeline from running at all**.
+
+**Impact:** This is more severe than the original issue - pipelines cannot even be validated, let alone executed.
+
+**Tested Variations (All Failed):**
+1. `rules:` with `when: manual` inside each rule item
+2. `only:` with `when: manual` (removed `needs:`)
+3. `rules:` with `needs:` and `when: manual` at job level
+
+**Conclusion:** This is a server-side validation bug in GitLab 18.6.2, not a YAML syntax issue.
+
+**Related Pipelines:**
+- Pipeline #476: Failed with "Undefined error" (commit: 2bddd659)
+- Pipeline #475: Failed with "Undefined error" (commit: 2d4252d6)
+- Pipeline #474: Failed with "Undefined error" (commit: 0e639415)
+
+**Comment Prepared:** See `GITLAB_ISSUE_542980_COMMENT.md` for the full comment text ready to post to the issue.
+
+---
+
 ## Summary
 
 ### Key Points
 
 1. **Issue #542980** is about pipeline execution behavior, not API validation
 2. **Separate from our CI/CD validation bug** (which we resolved)
-3. **Low impact** for our current setup
+3. **UPDATED:** We've found a more severe validation error that prevents pipelines from running
 4. **Workarounds available** if needed
 5. **Monitor for fix** in future GitLab versions
 
 ### Action Items
 
-- ✅ **No immediate action needed**
+- ✅ **Comment prepared** for GitLab issue (see `GITLAB_ISSUE_542980_COMMENT.md`)
+- ⏳ **Post comment** to GitLab.com issue #542980
 - 📋 **Monitor issue** for updates
 - 🧪 **Test after GitLab upgrades** to see if fixed
 - 📝 **Document workaround** if we encounter this behavior
@@ -292,4 +321,5 @@ deploy:
 - `GITLAB_VERSION_UPGRADE_AND_BUG_REPORT.md`
 - `CI_CD_VALIDATION_TEST_RESULTS.md`
 - `CI_CD_VALIDATION_TEST_GUIDE.md`
+- `GITLAB_ISSUE_542980_COMMENT.md` (comment ready to post)
 

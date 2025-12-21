@@ -31,7 +31,7 @@ spec:
           runAsUser: 0  # Run as root to fix permissions
       containers:
       - name: gitlab
-        image: gitlab/gitlab-ce:latest  # Official GitLab CE image
+        image: gitlab/gitlab-ce:18.7.0-ce.0  # Upgraded to 18.7.0
         imagePullPolicy: Always  # Pull latest on updates
         
         # GitLab Docker image runs as root by default and handles permissions internally

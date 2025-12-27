@@ -215,3 +215,4 @@ All components of the GitLab MCP setup have been successfully configured for ful
 **Status:** ✅ Ready for use - Restart Cursor to activate
 
 
+

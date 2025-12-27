@@ -566,3 +566,4 @@ Cursor AI with GitLab MCP enables:
 **Last Updated:** December 19, 2024  
 **Version:** 1.0
 
+

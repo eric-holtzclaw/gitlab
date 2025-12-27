@@ -118,3 +118,4 @@ curl -X POST \
 - ✅ Documented in repository
 - ⏳ **Pending:** Manual post to GitLab.com (MCP configured for self-hosted instance only)
 
+

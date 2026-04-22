@@ -1,0 +1,10 @@
+stages:
+  - test
+  - deploy
+
+include:
+  - project: 'infrastructure/core'
+    ref: main
+    file:
+      - 'k8s-devops/ci-templates/ai-code-review.yml'
+      - 'k8s-devops/ci-templates/ai-post-merge.yml'

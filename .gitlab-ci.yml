@@ -3,6 +3,8 @@ stages:
   - deploy
 
 include:
+  - project: 'infrastructure/docs-mcp'
+    file: '/ci-templates/docs-ingest.yml'
   - project: 'infrastructure/core'
     ref: main
     file:

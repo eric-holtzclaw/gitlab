@@ -43,6 +43,11 @@ MIRROR_REPOS=(
     "infrastructure/core"
     "infrastructure/supabase"
     "infrastructure/nginx"
+    # HA add-on: the public GitHub mirror is what the Supervisor clones
+    # anonymously, so it can install without a token in the clone URL.
+    # basename -> github.com/eric-holtzclaw/ha-access-control. See that repo's
+    # docs/DEPLOYMENT.md.
+    "applications/ha-access-control"
     # Note: gmaxgolfapp excluded as requested
 )
 
